@@ -1,0 +1,951 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Error;
+use App\Models\Merchant;
+use App\Models\PaymentLog;
+use App\Models\Setting;
+use App\Models\Transaction;
+use App\Models\PartialPayment;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Session;
+use Srmklive\PayPal\Services\PayPal as PayPalClient;
+
+class SandboxPaymentProcessingController extends Controller
+{
+    public function sandboxPayment()
+    {
+        $t_id = Session::get('transaction_id');
+        $u_id = Session::get('unique_id');
+        $payment_log = PaymentLog::where('unique_id', Session::get('unique_id'))->first();
+        $cancelUrl = $payment_log->errorUrl;
+        if($t_id){
+            $transaction = Transaction::where('id', $t_id)->first();
+            $credits = PaymentLog::OrderBy('id', 'desc')->first()->credits;
+            $merchant = Merchant::where('id', $transaction->merchant_id)->first();
+            return view('frontend.sandbox_payment', compact('merchant', 'transaction', 'credits','cancelUrl')); 
+        } else {
+           return view('frontend.sandbox_payment_404');
+        }
+        
+    }
+
+    public function sandboxPaymentCreditBuy()
+    {
+        $t_id = Session::get('transaction_id');
+        $u_id = Session::get('unique_id');
+
+        if($t_id){
+            $transaction = Transaction::where('id', $t_id)->first();
+            $merchant = Merchant::where('id', $transaction->merchant_id)->first();
+            return view('frontend.sandbox_payment_buy_credit', compact('merchant', 'transaction')); 
+        } else {
+           return view('frontend.sandbox_payment_404');
+        }
+        
+    }
+	
+	
+	 public function sandboxDuePayment()
+    {
+        $t_id = Session::get('transaction_id');
+        $u_id = Session::get('unique_id');
+         if($u_id){
+            $transaction = Transaction::where('id', $t_id)->first();
+            $credits = PaymentLog::OrderBy('id', 'desc')->first()->credits;
+            $merchant = Merchant::where('id', $transaction->merchant_id)->first();
+            $partialCount = PartialPayment::where('unique_id', $u_id)->count();
+            $partialPayments = PartialPayment::where('unique_id', $u_id)->first(); 
+           return view('frontend.sandbox_due_payment', compact('merchant', 'transaction', 'credits','partialCount','partialPayments'));
+        } else {
+           return view('frontend.sandbox_payment_404');
+        }
+    }
+
+         public function sandboxDuePaymentBuyCredit()
+    {
+        $t_id = Session::get('transaction_id');
+        $u_id = Session::get('unique_id');
+         if($u_id){
+            $transaction = Transaction::where('id', $t_id)->first();
+            $merchant = Merchant::where('id', $transaction->merchant_id)->first();
+            $partialCount = PartialPayment::where('unique_id', $u_id)->count();
+            $partialPayments = PartialPayment::where('unique_id', $u_id)->first(); 
+           return view('frontend.sandbox_due_payment_buy_credit', compact('merchant', 'transaction','partialCount','partialPayments'));
+        } else {
+           return view('frontend.sandbox_payment_404');
+        }
+    }
+	
+    public function sandboxPaymentConfirmed()
+    {
+
+        $t_id = Session::get('transaction_id');
+        $u_id = Session::get('unique_id');
+        
+
+        if($u_id)
+        {
+        $transaction = Transaction::where('id', $t_id)->first();
+        $credits = PaymentLog::OrderBy('id', 'desc')->first()->credits;
+        $merchant = Merchant::where('id', $transaction->merchant_id)->first();
+        $payment_log = PaymentLog::where('unique_id', Session::get('unique_id'))->first();
+        $merchant = Merchant::where('id', $payment_log->merchant_id)->first();
+        $partialPayments = PartialPayment::where('unique_id', $u_id)->get(); 
+        $successUrl = $payment_log->successUrl;
+        $checkout_url= $successUrl . '?response=00&sid='.$transaction->sid.'&merchant_id=' .
+            $merchant->secret_id . '&pay_type=' .
+            $_GET['type'] . '&is_buy_credit='.$transaction->is_buy_credit.'&reference_id=' .
+            $_GET['reference_id'] . '&pay_status=1&amount=' . $payment_log->amount . '&user_credits=' . $payment_log->credits . '&currency=' . $payment_log->currency .
+            '&transaction_date=' . $payment_log->transactionDateTime . '&invoice_number=' . $payment_log->invoiceNumber . '&store_name=' . $payment_log->storeName . '&txnToken=' . $payment_log->txnToken;      
+         
+         // print_r($successUrl);die;
+
+
+         $reference_id= $transaction->id;  
+         $pay_type= $_GET['type'];
+         $partialCount = PartialPayment::where('unique_id', $u_id)->count();
+
+            Session::forget('unique_id');
+            Session::forget('transaction_id'); 
+
+         if($transaction->is_buy_credit)
+         {
+            return redirect()->to($checkout_url); 
+         }
+         else {
+            return view('frontend.sandbox_payment_confirmed', compact('merchant', 'transaction', 'credits','checkout_url','reference_id','pay_type','partialCount','partialPayments'));
+         }
+
+        } else {
+           return view('frontend.sandbox_payment_404'); 
+        }
+    }
+
+    protected function sendMyofficeData($transaction_id) 
+    {
+           $transaction = Transaction::where('id', $transaction_id)->first();
+
+         if($transaction['merchant_id']==205)
+         {
+             $ch = curl_init();
+         	$partial = PartialPayment::where('unique_id', Session::get('unique_id'))->orderBy('id', 'desc')->first();
+            $payment_log = PaymentLog::where('unique_id', Session::get('unique_id'))->orderBy('id', 'desc')->first();
+
+                 $data = array(
+                'transaction_id' => $partial['transaction_id'],
+                'order_id' => $partial['order_id'],
+                'payment_type' => $partial['payment_type'],
+                'payment_date' => $partial['payment_date'],
+                'pay_amount' => $partial['amount'],
+                'due_amount' => $partial['due_amount'],
+                'full_amount' => $partial['full_amount'],
+                'status' => $partial['status'],
+                'payment_id' => $transaction['sid'],
+				'code'=> $transaction['code'],
+                'credits' => $payment_log['credits'], 
+                );
+           
+           
+            $data = http_build_query($data);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+            curl_setopt($ch, CURLOPT_URL, "https://myoffice.mybackpocket.co/api/checkout/updateTransactions/".$transaction['sid']);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+            curl_setopt($ch, CURLOPT_POST, 1);
+
+            $output = curl_exec($ch);
+
+          
+         }
+           
+    }
+	
+ protected function updatePaymentStatus($payment) 
+    {
+	       $transaction_id=$payment['transaction_id'];
+           $transaction = Transaction::where('id', $transaction_id)->first();
+
+
+         if($transaction['merchant_id']==205)
+         {
+             $ch = curl_init();
+			 $data = array(
+				 'status' => $payment['status'],
+			 );
+           
+           
+            $data = http_build_query($data);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+            curl_setopt($ch, CURLOPT_URL, "https://myoffice.mybackpocket.co/api/checkout/updatePaymentStatus/".$transaction['order_id']);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+            curl_setopt($ch, CURLOPT_POST, 1);
+
+            $output = curl_exec($ch);
+
+         }
+           
+    }
+
+	
+     protected function sendMyofficeBuyCreditData($transaction_id) 
+    {
+           $transaction = Transaction::where('id', $transaction_id)->first();
+
+         if($transaction['merchant_id']==205)
+         {
+            $ch = curl_init();
+            $partial = PartialPayment::where('unique_id', Session::get('unique_id'))->orderBy('id', 'desc')->first();
+
+            $data = array(
+                'payment_id' => $transaction['sid'],
+                'pay_amount' => $partial['amount'],
+                'transaction_id' => $partial['transaction_id'],
+                'payment_type'=>$partial['payment_type'],
+                'full_amount'=>$partial['full_amount'],
+                'status'=>$partial['status']
+                );
+
+            $data = http_build_query($data);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+            curl_setopt($ch, CURLOPT_URL, "https://myoffice.mybackpocket.co/api/checkout/updateBuyCreditData/".$transaction['sid']);   
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+            curl_setopt($ch, CURLOPT_POST, 1);
+
+            $output = curl_exec($ch);
+         }
+           
+    }
+
+          protected function sendUserCreditData($transaction_id)
+    {
+           $payment_log = PaymentLog::where('unique_id', Session::get('unique_id'))->first();
+         if($payment_log['merchant_id']==205)
+         {
+            $ch = curl_init();
+            $data = [
+                'sid' => $payment_log['sid'],
+                'credits' => $payment_log['credits'], 
+            ];
+
+            $data = http_build_query($data);
+
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+            curl_setopt($ch, CURLOPT_URL, "https://myoffice.mybackpocket.co/api/checkout/updateUserCredits/".$payment_log['sid']);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+            curl_setopt($ch, CURLOPT_POST, 1);
+
+            $output = curl_exec($ch);
+
+         }
+           
+    }
+	
+	protected function sendUserCreditDataByUser($customer_id)
+    {
+           $payment_log = PaymentLog::where('unique_id', Session::get('unique_id'))->first();
+         if($payment_log['merchant_id']==205)
+         {
+            $ch = curl_init();
+            $data = [
+                'sid' => $payment_log['sid'],
+                'credits' => $payment_log['credits'], 
+                'customer_id'=>$payment_log['customer_id'], 
+            ];
+
+            $data = http_build_query($data);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+            curl_setopt($ch, CURLOPT_URL, "https://myoffice.mybackpocket.co/api/checkout/updateUserCreditByUser/".$payment_log['customer_id']);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+            curl_setopt($ch, CURLOPT_POST, 1);
+            $output = curl_exec($ch);
+
+         }
+  
+    }
+
+
+    
+    public function sandboxCredtCardPayment(Request $request)
+    {
+        $creditBuy=$request->credit_buy;
+    	$partial_id=1;
+        $this->validate($request, [
+            'name' => 'required',
+            'card' => 'required|integer',
+            'month' => 'required|between:1,31',
+            'year' => 'required|integer',
+            'cvv' => 'required',
+        ]);
+
+        $payment_log = PaymentLog::where('unique_id', Session::get('unique_id'))->first();
+        $transaction = Transaction::where('id', Session::get('transaction_id'))->first();
+
+        $order_id = $transaction->order_id;
+
+
+        $setting = Setting::Orderby('id', 'desc')->first();
+        $merchant_id = $setting->credit_card_sandbox_merchant_id; //INSERT MERCHANT ID (must be a 9 digit string) Test
+        $api_key = $setting->credit_card_sandbox_api_key; //INSERT API ACCESS PASSCODE Test
+        $api_version = 'v1'; //default
+        $platform = 'api'; //default
+
+        //Create Beanstream Gateway
+        $beanstream = new \Beanstream\Gateway($merchant_id, $api_key, $platform, $api_version);
+
+        //Example Card Payment Data
+        $name = $request->input('name');
+        $card = $request->input('card');
+        $month = $request->input('month');
+        $year = $request->input('year');
+        $cvv = $request->input('cvv');
+
+        // Add partial payments 
+        $partial = PartialPayment::where('unique_id', $payment_log->unique_id)->first();
+
+        
+
+        // Partial payment senario 1 without due amount
+        if($transaction->due_amount=='' && $request->pay_amount!='')
+        {
+
+        $partialPayment = new PartialPayment([
+        'transaction_id' => ($partial)?$transaction->id.'_2':$transaction->id.'_1',
+        'unique_id' => $payment_log->unique_id,
+        'order_id' => $transaction->order_id,
+        'payment_type' => 'credit_card',
+        'amount' => $request->pay_amount,
+        'due_amount' => $transaction->full_amount - $request->pay_amount,
+        'full_amount' => $transaction->full_amount,
+        'code' => '',
+        'message' => ''
+         ]);
+        $partialPayment->save(); 
+
+          $payment_data = array(
+                'order_number' => $order_id."_1",
+                'amount' => $request->pay_amount,
+                'payment_method' => 'card',
+                'card' => array(
+                    'name' => $name,
+                    'number' => $card, //'4030000010001234',
+                    'expiry_month' => $month,
+                    'expiry_year' => $year,
+                    'cvd' => $cvv
+                )
+            );
+
+
+            $complete = TRUE; //set to FALSE for PA
+            //Try to submit a Card Payment
+            try {
+                ///working here
+
+                $result = $beanstream->payments()->makeCardPayment($payment_data, $complete);
+
+                if ($result) {
+                    if ($order_id) {
+                        $transaction->payment_type = 'credit_card';
+                        $transaction->status = 'completed';
+                        $transaction->due_amount=$transaction->full_amount - $request->pay_amount;
+                        $transaction->amount=$request->pay_amount;
+						$transaction->code=preg_replace( "#(.*?)(\d{4})$#", "$2",$card);
+                        $transaction->update();
+                        $partialPayment->status = 'completed';
+					    $partialPayment->amount = $request->pay_amount;
+                        $partialPayment->full_amount=$transaction->full_amount;
+                        $partialPayment->due_amount=$transaction->due_amount;
+					    $partialPayment->update();
+
+                        if($creditBuy){
+                         $transaction->is_buy_credit=1; 
+                         $this->sendMyofficeBuyCreditData($transaction->id); // update credit pay in myoffice database
+                        }
+                        $transaction->update();
+                        if(!$creditBuy)
+                        {
+                        $payment=['transaction_id'=>$transaction->id,'status'=>'booked'];
+                        $this->updatePaymentStatus($payment);    
+					    $this->sendMyofficeData($transaction->id);// Send data to myoffice API
+                        }
+                        
+
+                   if($creditBuy){
+                      return redirect()->route('sandbox.due.payment.buy.credit');
+                    }
+                    else {
+                        return redirect()->route('sandbox.due.payment');
+                    }
+                       
+                    }
+                }
+            } catch (\Beanstream\Exception $e) {
+                
+                return redirect()->back()->withErrors([$e->getMessage()]);
+            }
+        
+
+            
+        }
+      
+        // Partial payment senario 2 with due amount
+        else if($transaction->due_amount!='' )
+        {
+
+            $partialPayment = new PartialPayment([
+            'transaction_id' => ($partial)?$transaction->id.'_2':$transaction->id.'_1',
+            'unique_id' => $payment_log->unique_id,
+            'order_id' => $transaction->order_id,
+            'payment_type' => 'credit_card',
+            'amount' => $transaction->due_amount,
+            'due_amount' => 0,
+            'full_amount' => $transaction->full_amount,
+            'code' => '',
+            'message' => ''
+             ]);
+            $partialPayment->save();  
+
+          $payment_data = array(
+                'order_number' => $order_id."_2",
+                'amount' => $transaction->due_amount,
+                'payment_method' => 'card',
+                'card' => array(
+                    'name' => $name,
+                    'number' => $card, //'4030000010001234',
+                    'expiry_month' => $month,
+                    'expiry_year' => $year,
+                    'cvd' => $cvv
+                )
+            );
+
+
+
+            $complete = TRUE; //set to FALSE for PA
+            //Try to submit a Card Payment
+            try {
+                ///working here
+
+                $result = $beanstream->payments()->makeCardPayment($payment_data, $complete);
+
+                if ($result) {
+                    if ($order_id) {
+                        $transaction->payment_type = 'credit_card';
+                        $transaction->status = 'completed';
+                        $transaction->amount=$transaction->due_amount;
+						$transaction->code=preg_replace( "#(.*?)(\d{4})$#", "$2",$card);
+                        $partialPayment->status = 'completed';
+					    $partialPayment->amount = $transaction->due_amount;
+                        $partialPayment->due_amount=0;
+					    $partialPayment->update();
+                        $transaction->due_amount=0;
+                        $transaction->update();
+
+                        if($creditBuy){
+                         $transaction->is_buy_credit=1; 
+                         $this->sendMyofficeBuyCreditData($transaction->id); // update credit pay in myoffice database
+                        }
+                        $transaction->update(); 
+
+                        if(!$creditBuy){
+                        $payment=['transaction_id'=>$transaction->id,'status'=>'Incompleted'];
+                        $this->updatePaymentStatus($payment);     
+					    $this->sendMyofficeData($transaction->id);// Send data to myoffice API
+                        }
+
+                    if($creditBuy){
+                      return redirect()
+                                ->route('sandbox.confirmation', ['response' => '00','type'=>'Credit Card','reference_id'=>$transaction->id])
+                                ->with('success', 'Transaction complete.');
+                    }
+                    else {
+                       return redirect()
+                                ->route('sandbox.confirmation', ['response' => '00','type'=>'Credit Card','credit_buy'=>1,'reference_id'=>$transaction->id])
+                                ->with('success', 'Transaction complete.');
+                    }
+                    }
+                }
+            } catch (\Beanstream\Exception $e) {
+                return redirect()->back()->withErrors([$e->getMessage()]);
+            }
+        }
+
+        else {
+
+            $partialPayment = new PartialPayment([
+            'transaction_id' => $transaction->id,
+            'unique_id' => $payment_log->unique_id,
+            'order_id' => $transaction->order_id,
+            'payment_type' => 'credit_card',
+            'amount' => $transaction->amount,
+            'due_amount' => 0,
+            'full_amount' => $transaction->full_amount,
+            'code' => '',
+            'message' => ''
+             ]);
+            $partialPayment->save();
+
+
+               $payment_data = array(
+                    'order_number' => $order_id,
+                    'amount' => $transaction->full_amount,
+                    'payment_method' => 'card',
+                    'card' => array(
+                        'name' => $name,
+                        'number' => $card, //'4030000010001234',
+                        'expiry_month' => $month,
+                        'expiry_year' => $year,
+                        'cvd' => $cvv
+                    )
+                );
+
+
+                $complete = TRUE; //set to FALSE for PA
+                //Try to submit a Card Payment
+                try {
+                    ///working here
+
+                    $result = $beanstream->payments()->makeCardPayment($payment_data, $complete);
+
+                    if ($result) {
+                        if ($order_id) {
+                            $transaction->status = 'completed';
+                            $transaction->payment_type = 'credit_card';
+                            $transaction->due_amount=0;
+							$transaction->code=preg_replace( "#(.*?)(\d{4})$#", "$2",$card);
+                            $transaction->amount=$transaction->full_amount;
+                            $transaction->update();
+
+                            $partialPayment->status = 'completed';
+                            $partialPayment->due_amount=0;
+                            $partialPayment->amount=$transaction->full_amount;
+                            $partialPayment->full_amount=$transaction->full_amount;
+                            $partialPayment->transaction_id=$transaction->id;
+					        $partialPayment->update();
+
+                            if($creditBuy)
+                            {
+                             $transaction->is_buy_credit=1; 
+                             $this->sendMyofficeBuyCreditData($transaction->id); // update credit pay in myoffice database
+                            }
+                            $transaction->update();
+
+                            if(!$creditBuy){
+                            $payment=['transaction_id'=>$transaction->id,'status'=>'booked'];
+                            $this->updatePaymentStatus($payment);     
+					        $this->sendMyofficeData($transaction->id);// Send data to myoffice API
+                            }
+
+                            return redirect()
+                                ->route('sandbox.confirmation', ['response' => '00','type'=>'Credit Card','reference_id'=>$transaction->id])
+                                ->with('success', 'Transaction complete.');
+                        }
+                    }
+                } catch (\Beanstream\Exception $e) {
+                    return redirect()->back()->withErrors([$e->getMessage()]);
+                }
+
+        }
+
+
+        // Card payment start .............................................................
+
+      
+    }
+
+
+    public function SandboxPayPal(Request $request)
+    {
+        $credit_buy=$request->credit_buy;
+        $provider = new PayPalClient;
+        $provider->setApiCredentials(config('paypal'));
+        $paypalToken = $provider->getAccessToken();
+
+        $payment_log = PaymentLog::where('unique_id', Session::get('unique_id'))->first();
+        $transaction = Transaction::where('id', Session::get('transaction_id'))->first();
+
+    
+
+        if($transaction->due_amount=='' && $request->pay_amount!='' )
+        {
+
+
+                $response = $provider->createOrder([
+                    "intent" => "CAPTURE",
+                    "application_context" => [
+                        "return_url" => ($credit_buy)?route('sandbox.payPalSuccess.PartialPay',['credit_buy' => '1']):route('sandbox.payPalSuccess.PartialPay'),
+                        "cancel_url" => route('sandbox.return', ['response' => '06']),
+                    ],
+                    "purchase_units" => [
+                        0 => [
+                            "amount" => [
+                                "currency_code" => "CAD",
+                                "value" => "$request->pay_amount"
+                            ]
+                        ]
+                    ]
+                ]);
+
+            
+        }
+      
+        else if($transaction->due_amount!='')
+        {
+           $response = $provider->createOrder([
+                    "intent" => "CAPTURE",
+                    "application_context" => [
+                        "return_url" => ($credit_buy)?route('sandbox.payPalSuccess.PartialPay',['credit_buy' => '1']):route('sandbox.payPalSuccess.PartialPay'),
+                        "cancel_url" => route('sandbox.return', ['response' => '06']),
+                    ],
+                    "purchase_units" => [
+                        0 => [
+                            "amount" => [
+                                "currency_code" => "CAD",
+                                "value" => "$transaction->due_amount"
+                            ]
+                        ]
+                    ]
+                ]);  
+                
+        }
+        else 
+        {
+
+                $response = $provider->createOrder([
+                    "intent" => "CAPTURE",
+                    "application_context" => [
+                        "return_url" => route('sandbox.payPalSuccess'),
+                        "cancel_url" => route('sandbox.return', ['response' => '06']),
+                    ],
+                    "purchase_units" => [
+                        0 => [
+                            "amount" => [
+                                "currency_code" => "CAD",
+                                "value" => "$transaction->full_amount"
+                            ]
+                        ]
+                    ]
+                ]);
+
+       }
+
+          if (isset($response['id']) && $response['id'] != null) {
+                    // redirect to approve href
+                    foreach ($response['links'] as $links) {
+                        if ($links['rel'] == 'approve') {
+                            if($credit_buy){
+                                  $new_url=$links['href'].'&credit_buy=1&sid='.$transaction->sid.'=&is_buy_credit='.$transaction->is_buy_credit;
+                                  return redirect()->away($new_url); 
+                            }
+                            else {
+                                $new_url=$links['href'].'&sid='.$transaction->sid;
+                                  return redirect()->away($new_url); 
+                            }
+                           
+                        }
+                    }
+                    return redirect()
+                        ->route('sandbox.return', ['response' => '06'])
+                        ->with('error', 'Something went wrong.');
+                } else {
+                    return redirect()
+                        ->route('sandbox.return', ['response' => '06'])
+                        ->with('error', $response['message'] ?? 'Something went wrong.');
+                }
+   }
+
+    public function DemoPayPalSuccess(Request $request)
+    {
+
+        $provider = new PayPalClient;
+        $provider->setApiCredentials(config('paypal'));
+        $provider->getAccessToken();
+        $response = $provider->capturePaymentOrder($request['token']);
+
+        if (isset($response['status']) && $response['status'] == 'COMPLETED') {
+
+        $payment_log = PaymentLog::where('unique_id', Session::get('unique_id'))->first();
+        $partialPayment = PartialPayment::where('unique_id', Session::get('unique_id'))->first();
+        $transaction = Transaction::where('id', Session::get('transaction_id'))->first();
+        if(empty($partialPayment))
+        {
+
+            $partialPayment = new PartialPayment([
+            'transaction_id' => $transaction->id,
+            'unique_id' => $payment_log->unique_id,
+            'order_id' => $transaction->order_id,
+            'payment_type' => 'paypal',
+            'amount' => $transaction->amount,
+            'due_amount' => 0,
+            'full_amount' => $transaction->full_amount,
+            'code' => '',
+            'message' => '',
+            'status'=>'completed'
+             ]);
+
+            $partialPayment->save(); 
+        } 
+        else {
+            $partialPayment->status='completed';
+            $partialPayment->update();
+        }
+
+
+            $transaction->payment_type = 'paypal';
+            $transaction->status = 'completed';
+            $transaction->update();
+
+            $this->sendMyofficeData($transaction->id); // Send data to myoffice API
+            $payment=['transaction_id'=>$transaction->id,'status'=>'booked'];
+            $this->updatePaymentStatus($payment);
+            return redirect()
+                ->route('sandbox.return', ['response' => '00'])
+                ->with('success', 'Transaction complete.');
+        } else {
+            return redirect()
+                ->route('sandbox.return', ['response' => '07'])
+                ->with('error', $response['message'] ?? 'Something went wrong.');
+        }
+    }
+
+        public function PayPalSuccessPartialPay(Request $request)
+    {
+        $credit_buy= $request->credit_buy;
+        $provider = new PayPalClient;
+        $provider->setApiCredentials(config('paypal'));
+        $provider->getAccessToken();
+        $response = $provider->capturePaymentOrder($request['token']);
+
+        $partial_id=1;
+        $payment_log = PaymentLog::where('unique_id', Session::get('unique_id'))->first();
+        $transaction = Transaction::where('id', Session::get('transaction_id'))->first();
+        $partial = PartialPayment::where('unique_id', $payment_log->unique_id)->first();
+
+        $paypal_amount=$response['purchase_units'][0]['payments']['captures'][0]['amount']['value'];
+        $partialPayment = new PartialPayment([
+        'transaction_id' => ($partial)?$transaction->id.'_2':$transaction->id.'_1',
+        'unique_id' => $payment_log->unique_id,
+        'order_id' => $transaction->order_id,
+        'payment_type' => 'paypal',
+        'amount' => $paypal_amount,
+        'due_amount' => (!empty($partial) OR ($transaction->full_amount==$paypal_amount))?0:($transaction->full_amount- $paypal_amount),
+        'full_amount' => $transaction->full_amount,
+        'code' => '',
+        'message' => ''
+         ]);
+          $partialPayment->save();
+       
+
+        if (isset($response['status']) && $response['status'] == 'COMPLETED') {
+            $transaction = Transaction::where('id', Session::get('transaction_id'))->first();
+
+            $transaction->update();
+            $transaction->payment_type = 'paypal';
+            $transaction->amount=$paypal_amount;
+            $transaction->due_amount=(!empty($partial) OR ($transaction->full_amount==$paypal_amount))?0:($transaction->full_amount-$paypal_amount);
+            $transaction->status = 'completed';
+            $transaction->update();
+
+            $partialPayment->status = 'completed';
+            $partialPayment->update();
+
+            if($credit_buy){
+              $transaction->is_buy_credit=1;
+              $transaction->update();
+              if($transaction->due_amount!=0.00)
+              {
+                  $this->sendMyofficeBuyCreditData($transaction->id); 
+                  return redirect()->route('sandbox.due.payment.buy.credit');
+              }
+              else {
+                $this->sendMyofficeBuyCreditData($transaction->id); 
+                 return redirect()
+                                ->route('sandbox.confirmation', ['response' => '00','type'=>'Paypal','credit_buy'=>1,'reference_id'=>$transaction->id])
+                                ->with('success', 'Transaction complete.');
+              }
+               
+            }
+            else if($transaction->due_amount!=0.00)
+            {
+                 $this->sendMyofficeData($transaction->id);// Send data to myoffice API
+                 $payment=['transaction_id'=>$transaction->id,'status'=>'Incompleted'];
+                 $this->updatePaymentStatus($payment);
+                 return redirect()->route('sandbox.due.payment');
+            }
+            else {
+
+                 $this->sendMyofficeData($transaction->id);// Send data to myoffice API
+                 $payment=['transaction_id'=>$transaction->id,'status'=>'Partially Paid'];
+                 $this->updatePaymentStatus($payment);
+               return redirect()
+                                ->route('sandbox.confirmation', ['response' => '00','type'=>'Paypal','reference_id'=>$transaction->id])
+                                ->with('success', 'Transaction complete.');
+            }
+            
+
+        } else {
+            return redirect()
+                ->route('sandbox.return', ['response' => '07'])
+                ->with('error', $response['message'] ?? 'Something went wrong.');
+        }
+    }
+
+    public function sandboxReturn($response)
+    { 
+        
+        $returnResponse = Error::where('error', $response)->first()->description;
+        if ($response == '00') {
+            $payment_log = PaymentLog::where('unique_id', Session::get('unique_id'))->first();
+            $transaction = Transaction::where('id', Session::get('transaction_id'))->first();
+            $merchant = Merchant::where('id', $payment_log->merchant_id)->first(); 
+            $successUrl = $payment_log->successUrl;
+            $checkout_url= $successUrl . '?response=00&sid='.$transaction->sid.'&merchant_id=' .
+            $merchant->secret_id . '&is_buy_credit='.$transaction->is_buy_credit.'&pay_type='.$transaction->payment_type.'&pay_status=1&amount=' . $payment_log->amount . '&credits=' . $payment_log->credits . '&currency=' . $payment_log->currency .
+            '&transaction_date=' . $payment_log->transactionDateTime . '&invoice_number=' . $payment_log->invoiceNumber . '&store_name=' . $payment_log->storeName . '&txnToken=' . $payment_log->txnToken;  
+
+            Session::forget('unique_id');
+            Session::forget('transaction_id');
+
+            return redirect($checkout_url);
+
+        } elseif ($response == '05') {
+            echo '<pre>';
+            print_r("error url is not found");
+            die();
+        } elseif ($response == '08') {
+            $url = Session::get('errorUrl');
+            Session::forget('errorUrl');
+            return redirect($url[0] . '?error=' . $returnResponse . ''); 
+        } else {
+            $url = Session::get('errorUrl');
+            Session::forget('errorUrl');
+            return redirect($url[0] . '?error=' . $returnResponse . '');
+        }
+    }
+
+
+
+
+    public function sandboxUserCreditPayment(Request $request)
+    {
+		$partial_id=1;
+        $transaction = Transaction::where('id', Session::get('transaction_id'))->first();
+		$payment_log = PaymentLog::where('unique_id', Session::get('unique_id'))->first();
+		$partial = PartialPayment::where('unique_id', $payment_log->unique_id)->first();
+
+		$partialPayment = new PartialPayment([
+		'transaction_id' => ($partial)?$transaction->id.'_2':$transaction->id.'_1',
+	    'unique_id' => $payment_log->unique_id,
+	    'order_id' => $transaction->order_id,
+	    'payment_type' => 'user_credit',
+	    'amount' => ($request->pay_amount)?$request->pay_amount:$transaction->amount,
+	    'due_amount' => (($transaction->due_amount)?$transaction->due_amount:$transaction->amount) - $request->pay_amount,
+	    'full_amount' => $transaction->full_amount,
+	    'code' => '',
+	    'message' => ''
+         ]);
+
+        $partialPayment->save(); 
+
+        
+		  if($transaction->full_amount==$request->pay_amount)
+        { 
+            $transaction->payment_type = 'user_credit';
+            $transaction->status = 'completed';
+            $transaction->full_amount=$transaction->amount;
+            $transaction->amount=$request->pay_amount;
+            $transaction->due_amount=0;
+            $transaction->update();
+    
+            $payment_log->credits = $payment_log->credits - $request->pay_amount;
+            $payment_log->update();
+    
+            $this->sendUserCreditDataByUser($payment_log->customer_id);
+            $partialPayment->status = 'completed';
+            $partialPayment->amount = $request->pay_amount;
+            $partialPayment->due_amount=0;
+            $partialPayment->update();
+            $this->sendMyofficeData($transaction->id);// Send data to myoffice API
+            $payment=['transaction_id'=>$transaction->id,'status'=>'booked'];
+            $this->updatePaymentStatus($payment);
+            return redirect()
+                ->route('sandbox.confirmation', ['response' => '00','type'=>'User Credit','reference_id'=>$transaction->id])
+                ->with('success', 'Transaction complete.');
+        }
+		else if($transaction->due_amount=='' && $request->pay_amount!='')
+		{
+		$transaction->payment_type = 'user_credit';
+        $transaction->status = 'completed'; 
+		$transaction->due_amount=$transaction->full_amount - $request->pay_amount;
+        $transaction->amount=$request->pay_amount;
+        $transaction->update();
+
+		$payment_log->credits = $payment_log->credits - $request->pay_amount;
+        $payment_log->update();
+
+        $this->sendUserCreditDataByUser($payment_log->customer_id);
+
+        $partialPayment->status = 'completed';
+        $partialPayment->amount = $request->pay_amount; 
+        $partialPayment->update();
+        $this->sendMyofficeData($transaction->id);// Send data to myoffice API
+        $payment=['transaction_id'=>$transaction->id,'status'=>'Incompleted'];
+			
+        $this->updatePaymentStatus($payment);
+
+		return redirect()->route('sandbox.due.payment');
+			
+		}
+      
+		else if($transaction->due_amount!='')
+		{
+			
+		$transaction->payment_type = 'user_credit';
+        $transaction->status = 'completed';
+		$transaction->full_amount=$transaction->amount;
+        $transaction->amount=$transaction->due_amount;
+        $transaction->due_amount=0;
+		$transaction->update();
+			
+		$payment_log->credits = $payment_log->credits - $transaction->due_amount;
+        $payment_log->update();
+
+        $this->sendUserCreditDataByUser($payment_log->customer_id);
+        $partialPayment->status = 'completed';
+        $partialPayment->amount = $transaction->amount;
+        $partialPayment->due_amount=0;
+        $partialPayment->update();	
+
+        $this->sendMyofficeData($transaction->id);// Send data to myoffice API
+        $payment=['transaction_id'=>$transaction->id,'status'=>'Partially Paid'];
+        $this->updatePaymentStatus($payment);
+
+		return redirect()
+            ->route('sandbox.confirmation', ['response' => '00','type'=>'User Credit','reference_id'=>$transaction->id])
+            ->with('success', 'Transaction complete.');
+		}
+        else 
+		{
+
+        $transaction->payment_type = 'user_credit';
+        $transaction->status = 'completed';
+        $transaction->update();
+        $payment_log->credits = $payment_log->credits - $transaction->amount;
+        $payment_log->update();
+
+        $this->sendUserCreditDataByUser($payment_log->customer_id);
+
+        $partialPayment->status = 'completed';
+        $partialPayment->amount = $transaction->amount;
+        $partialPayment->due_amount=0;
+        $partialPayment->transaction_id=$transaction->id;
+        $partialPayment->update();
+        $payment=['transaction_id'=>$transaction->id,'status'=>'booked'];
+        $this->updatePaymentStatus($payment);
+        $this->sendMyofficeData($transaction->id);// Send data to myoffice API
+
+        return redirect()
+            ->route('sandbox.confirmation', ['response' => '00','type'=>'User Credit','reference_id'=>$transaction->id])
+            ->with('success', 'Transaction complete.');
+		}		
+    }
+}
