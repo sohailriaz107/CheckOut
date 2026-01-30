@@ -281,11 +281,13 @@
 		                               </tr>
 		                                </table>
                                      </div>
-                                    <div class="card-footer  col-md-6">
+                                    <div class="card-footer  col-md-6 d-flex justify-content-center align-items-center">
                                     	<input type="hidden" name="credit_buy" value="1">
                                         <button type="submit"
-                                                class="subscribe btn btn-primary btn-block shadow-sm"> PAY BY CREDIT CARD
+                                                class="subscribe btn btn-primary btn-block shadow-sm mr-2"> PAY BY CREDIT CARD
                                         </button>
+                                        <a class="btn btn-primary btn-cancel" href="{{ route('sandbox.cancel') }}">CANCEL</a>
+                                    </div>
                                 </form>
                         </div>
                         </div> <!-- End -->
@@ -309,10 +311,12 @@
 		                               </tr>
 		                                </table>
                               </div>
-                              <div class="card-footer col-md-6">
+                              <div class="card-footer col-md-6 d-flex justify-content-center align-items-center">
                                 <input type="hidden" name="credit_buy" value="1">
-                               <button type="submit" class="subscribe btn btn-primary btn-block shadow-sm"> PAY BYPAYPAL
+                               <button type="submit" class="subscribe btn btn-primary btn-block shadow-sm mr-2"> PAY BYPAYPAL
                                </button>
+                               <a class="btn btn-primary btn-cancel" href="{{ route('sandbox.cancel') }}">CANCEL</a>
+                              </div>
                               </div>
                              <p class="text-muted"> Note: After clicking on the button, you will be directed to a
                                 secure gateway for payment. After completing the payment process, you will be

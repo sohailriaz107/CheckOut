@@ -10,7 +10,8 @@
     <title>Payment Portal</title>
 
     <link rel="canonical" href="https://getbootstrap.com/docs/5.0/examples/sign-in/">
-    <link rel="icon" type="image/png" href="https://myoffice.mybackpocket.co/images/fav-main.png" />
+    <link rel="icon" type="image/png" href="{{ asset('merchant_logos/fav-main.png') }}">
+
 
     <!-- Bootstrap core CSS -->
     <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" rel="stylesheet">

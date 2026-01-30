@@ -8,7 +8,8 @@
     <meta name="author" content="Mark Otto, Jacob Thornton, and Bootstrap contributors">
     <meta name="generator" content="Hugo 0.84.0">
     <title>Payment Portal</title>
-    <link rel="icon" type="image/png" href="https://myoffice.mybackpocket.co/images/fav-main.png" />
+<link rel="icon" type="image/png" href="{{ asset('merchant_logos/fav-main.png') }}">
+
     <link rel="canonical" href="https://getbootstrap.com/docs/5.0/examples/sign-in/">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.1/jquery.validate.min.js"></script>
@@ -94,6 +95,9 @@
             background-color: #b0b1b3;
             border: solid 1px #000;
             color: #fff;
+        }
+        .btn-cancel:hover{
+            background-color: red !important;  
         }
        .form-control { 
             border: 1px solid #7c7d7d;
@@ -280,11 +284,14 @@
                                                 </div>
                                         </div>
                                     </div>
-                                    <div class="card-footer  col-md-6">
+                                    <div class="card-footer  col-md-6 d-flex justify-content-center align-items-center">
                                         <input type="hidden" name="credit_buy" value="1">
                                         <button type="submit"
-                                                class="subscribe btn btn-primary btn-block shadow-sm"> PAY BY CREDIT CARD
+                                                class="subscribe btn btn-primary btn-block shadow-sm mr-2"> PAY BY CREDIT CARD
                                         </button>
+                                        <a class="btn btn-primary btn-cancel" href="{{ route('sandbox.cancel') }}">CANCEL</a>
+                                    </div>
+                                        <a class="btn btn-primary btn-cancel" href="{{ route('sandbox.cancel') }}">CANCEL</a>
                                 </form>         
                                     </div>
                              @endif
@@ -309,10 +316,11 @@
                             <p style="font-weight:bold;text-align: center;">${{number_format((float)$transaction->due_amount, 2, '.', '')}}</p>
                          </div>
                           @if($payment_type!="paypal")
-                            <div class="card-footer col-md-6">
-                               <button type="submit" class="subscribe btn btn-primary btn-block shadow-sm"> PAY BYPAYPAL
+                            <div class="card-footer col-md-6 d-flex justify-content-center align-items-center">
+                               <button type="submit" class="subscribe btn btn-primary btn-block shadow-sm mr-2"> PAY BYPAYPAL
                                </button>
-                            </div>
+                               <a class="btn btn-primary btn-cancel" href="{{ route('sandbox.cancel') }}">CANCEL</a>
+                              </div>
                           @endif     
                              <p class="text-muted"> Note: After clicking on the button, you will be directed to a
                                 secure gateway for payment. After completing the payment process, you will be

@@ -41,6 +41,7 @@ Route::get('sandbox-payment-confirmed', [SandboxPaymentProcessingController::cla
 Route::get('/sandbox-due-payment', [SandboxPaymentProcessingController::class, 'sandboxDuePayment'])->name('sandbox.due.payment');
 Route::get('/sandbox-due-payment-buy-credit', [SandboxPaymentProcessingController::class, 'sandboxDuePaymentBuyCredit'])->name('sandbox.due.payment.buy.credit');
 Route::get('/sandbox-return/{response}', [SandboxPaymentProcessingController::class, 'sandboxReturn'])->name('sandbox.return');
+Route::get('/sandbox-payment-cancel', [SandboxPaymentProcessingController::class, 'sandboxCancel'])->name('sandbox.cancel');
 Route::get('/sandbox-pay-pal-success', [SandboxPaymentProcessingController::class, 'DemoPayPalSuccess'])->name('sandbox.payPalSuccess');
 Route::get('/sandbox-pay-pal-success-partial-pay', [SandboxPaymentProcessingController::class, 'PayPalSuccessPartialPay'])->name('sandbox.payPalSuccess.PartialPay');
 Route::post('/sandbox-payment-credit-card', [SandboxPaymentProcessingController::class, 'sandboxCredtCardPayment'])->name('sandbox.payment.credit.card');

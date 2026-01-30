@@ -17,10 +17,12 @@ class SandBoxPaymentController extends Controller
     {
         Session::forget('transaction_id');
         Session::forget('unique_id');
+        Session::forget('errorUrl');
+        Session::forget('successUrl');
         $merchant = Merchant::where('id', $request->merchantPgIdentifier)->first();
         Session::push('errorUrl', $request->errorUrl);
         Session::push('successUrl', $request->successUrl);
-        if ($request->errorUrl = ''  && $request->successUrl = '') 
+        if ($request->errorUrl == ''  && $request->successUrl == '') 
         {
             $response = '05';
             return redirect()->route('sandbox.return', ['response' => $response]);
@@ -54,10 +56,12 @@ class SandBoxPaymentController extends Controller
     {
         Session::forget('transaction_id');
         Session::forget('unique_id');
+        Session::forget('errorUrl');
+        Session::forget('successUrl');
         $merchant = Merchant::where('id', $request->merchantPgIdentifier)->first();
         Session::push('errorUrl', $request->errorUrl);
         Session::push('successUrl', $request->successUrl);
-        if ($request->errorUrl = ''  && $request->successUrl = '') 
+        if ($request->errorUrl == ''  && $request->successUrl == '') 
         {
             $response = '05';
             return redirect()->route('sandbox.return', ['response' => $response]);
@@ -138,7 +142,11 @@ class SandBoxPaymentController extends Controller
 
     public function paymentLog($request) #saving array to payment_logs and transactions tables
     {
-        $payment_log = PaymentLog::where('unique_id', Session::get('unique_id'))->first();
+        $uniqueId = Session::get('unique_id');
+        if (is_array($uniqueId)) {
+            $uniqueId = end($uniqueId);
+        }
+        $payment_log = PaymentLog::where('unique_id', $uniqueId)->first();
         if (isset($payment_log)) {
         	$payment_log->cart_order_id= $request->cart_order_id;
             $payment_log->merchant_id = $request->merchantPgIdentifier;

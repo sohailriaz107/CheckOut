@@ -8,7 +8,8 @@
     <meta name="author" content="Mark Otto, Jacob Thornton, and Bootstrap contributors">
     <meta name="generator" content="Hugo 0.84.0">
     <title>Payment Portal</title>
-    <link rel="icon" type="image/png" href="https://myoffice.mybackpocket.co/images/fav-main.png" />
+    <link rel="icon" type="image/png" href="{{ asset('merchant_logos/fav-main.png') }}">
+
     <link rel="canonical" href="https://getbootstrap.com/docs/5.0/examples/sign-in/">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.1/jquery.validate.min.js"></script>
@@ -95,6 +96,9 @@
             background-color: #b0b1b3;
             border: solid 1px #000;
             color: #fff;
+        }
+        .btn-cancel:hover{
+            background-color: red !important;  
         }
        .form-control { 
             border: 1px solid #7c7d7d;
@@ -229,7 +233,12 @@
                                 <table style="width:100%;text-align: center;">
                                <tr>
                                    <td style="width:25%;text-align: right;">PAYMENT:</td>
-                                   <td style="width:25%;"><input type="text" name="pay_amount" style="width: 50%;" /></td>
+                                   <td style="width:25%;">
+                                       <div style="display: flex; align-items: center; border: 1px solid #ced4da; border-radius: 4px; padding: 2px 5px; width: 60%; margin-left: auto;">
+                                           <span style="font-weight: bold; margin-right: 5px; font-size: 16px;">$</span>
+                                           <input type="text" name="pay_amount" style="width: 100%; border: none; outline: none; font-weight: bold; font-size: 16px;" />
+                                       </div>
+                                   </td>
                                </tr>
                                 </table>
                                 @endif
@@ -244,6 +253,7 @@
                                 @if($payment_type!="user_credit")
                                  <div class="card-footer col-md-6 text-center">
                                     <button class="btn btn-primary">PAY BALANCE</button>
+                                    <a class="btn btn-primary btn-cancel" href="{{ route('sandbox.cancel') }}">CANCEL</a>
                                  </div>
                                  @endif  
                                 @endif  
@@ -350,12 +360,13 @@
                                                 </div>
                                         </div>
                                     </div>
-                                    <div class="card-footer  col-md-6">
+                                    <div class="card-footer  col-md-6 d-flex justify-content-center align-items-center">
                                         <button type="submit"
-                                                class="subscribe btn btn-primary btn-block shadow-sm"> PAY BY CREDIT CARD
+                                                 class="subscribe btn btn-primary btn-block shadow-sm mr-2"> PAY BY CREDIT CARD
                                         </button>
-                                </form>         
+                                        <a class="btn btn-primary btn-cancel" href="{{ route('sandbox.cancel') }}">CANCEL</a>
                                     </div>
+                                </form>         
                              @endif
                         </div> <!-- End -->
                         <!-- Paypal info -->
@@ -376,10 +387,11 @@
                             <label style="font-weight:bold;text-align: center;width: 100%;">BALANCE DUE</lable>
                             <p style="font-weight:bold;text-align: center;">${{$partialPayments->due_amount}}</p>
                          </div>
-                            <div class="card-footer col-md-6">
+                             <div class="card-footer col-md-6 d-flex justify-content-center align-items-center">
                                @if($payment_type!="paypal")
-                               <button type="submit" class="subscribe btn btn-primary btn-block shadow-sm"> PAY BYPAYPAL
+                               <button type="submit" class="subscribe btn btn-primary btn-block shadow-sm mr-2"> PAY BYPAYPAL
                                </button>
+                               <a class="btn btn-primary btn-cancel" href="{{ route('sandbox.cancel') }}">CANCEL</a>
                                 @endif
                               </div>
                              <p class="text-muted"> Note: After clicking on the button, you will be directed to a

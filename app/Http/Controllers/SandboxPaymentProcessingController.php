@@ -789,6 +789,43 @@ class SandboxPaymentProcessingController extends Controller
         }
     }
 
+    public function sandboxCancel(Request $request)
+    {
+        $transactionId = Session::get('transaction_id');
+        if (is_array($transactionId)) {
+            $transactionId = end($transactionId);
+        }
+
+        $transaction = Transaction::where('id', $transactionId)->first();
+        if ($transaction) {
+            $transaction->status = 'cancelled';
+            $transaction->update();
+            
+            $payment = ['transaction_id' => $transaction->id, 'status' => 'cancelled'];
+            $this->updatePaymentStatus($payment);
+        }
+
+        $uniqueId = Session::get('unique_id');
+        if (is_array($uniqueId)) {
+            $uniqueId = end($uniqueId);
+        }
+
+        $payment_log = PaymentLog::where('unique_id', $uniqueId)->first();
+        
+        $errorUrlSession = Session::get('errorUrl');
+        $errorUrl = $payment_log ? $payment_log->errorUrl : (is_array($errorUrlSession) ? end($errorUrlSession) : url('/'));
+
+        // Append cancelled=1 to the redirect URL. 
+        // This is REQUIRED for client requirements 'c' and 'd' so the merchant site can redirect to Listing Details or Checkout.
+        $separator = (parse_url($errorUrl, PHP_URL_QUERY) == NULL) ? '?' : '&';
+        $redirectUrl = $errorUrl . $separator . 'cancelled=1';
+
+        Session::forget('unique_id');
+        Session::forget('transaction_id');
+
+        return redirect($redirectUrl);
+    }
+
     public function sandboxReturn($response)
     { 
         
