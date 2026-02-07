@@ -251,8 +251,8 @@
                                 </div>
                                 @else
                                 @if($payment_type!="user_credit")
-                                 <div class="card-footer col-md-6 text-center">
-                                    <button class="btn btn-primary">PAY BALANCE</button>
+                                 <div class="card-footer col-md-6 d-flex justify-content-center align-items-center">
+                                    <button class="btn btn-primary mr-2">PAY BALANCE</button>
                                     <a class="btn btn-primary btn-cancel" href="{{ route('sandbox.cancel') }}">CANCEL</a>
                                  </div>
                                  @endif  

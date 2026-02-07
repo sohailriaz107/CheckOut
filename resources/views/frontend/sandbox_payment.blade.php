@@ -237,10 +237,10 @@ $cancel_payment_url = $cancelUrl;
                                @if($credits)
                                 <table style="width:100%;" class="main-align-column">
                                 <tr>
-                                    <td style="width:25%;" class="left-align-column">AMOUNT OF CREDITS TO APPLY:</td>
-                                   <td style="width:25%;" class="right-align-column">
-                                       <div style="display: flex; align-items: center; border: 1px solid #ced4da; border-radius: 4px; padding: 2px 5px; width: 60%;">
-                                           <span style="font-weight: bold; margin-right: 5px; font-size: 16px;">$</span>
+                                    <td style="width:21%; padding:0px;font-size:13px;" class="left-align-column">AMOUNT OF CREDITS TO APPLY:  <span style="font-weight: bold; margin-right: 2px; font-size: 16px; margin-left:5px">$</span></td>
+                                   <td style="width:16%;" class="right-align-column">
+                                       <div style="display: flex; align-items: center; border: 1px solid #ced4da; border-radius: 4px; padding: 2px 5px; width: 45%;">
+                                          
                                            <input type="number" name="pay_amount" value="{{ $transaction->amount }}" style="width: 100%; border: none; outline: none; font-weight: bold; font-size: 16px;" />
                                        </div>
                                    </td>
