@@ -8,7 +8,8 @@
     <meta name="author" content="Mark Otto, Jacob Thornton, and Bootstrap contributors">
     <meta name="generator" content="Hugo 0.84.0">
     <title>Payment Portal</title>
-    <link rel="icon" type="image/png" href="https://myoffice.mybackpocket.co/images/fav-main.png" />
+    <!-- <link rel="icon" type="image/png" href="https://myoffice.mybackpocket.co/images/fav-main.png" /> -->
+     <link rel="icon" type="image/png" href="{{ asset('merchant_logos/fav-main.png') }}">
     <link rel="canonical" href="https://getbootstrap.com/docs/5.0/examples/sign-in/"> 
 
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.js"></script>

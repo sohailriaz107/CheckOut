@@ -8,7 +8,8 @@
     <meta name="author" content="Mark Otto, Jacob Thornton, and Bootstrap contributors">
     <meta name="generator" content="Hugo 0.84.0">
     <title>Payment Portal</title>
-    <link rel="icon" type="image/png" href="https://myoffice.mybackpocket.co/images/fav-main.png" />
+    
+    <link rel="icon" type="image/png" href="{{ asset('merchant_logos/fav-main.png') }}">
     <link rel="canonical" href="https://getbootstrap.com/docs/5.0/examples/sign-in/"> 
 
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.js"></script>
@@ -224,7 +225,7 @@ $cancel_payment_url = $cancelUrl;
                            <table style="width:100%;" class="main-align-column">
                                <tr>
                                    <td style="width:25%;" class="left-align-column">AVAILABLE CREDITS:</td>
-                                   <td style="width:25%;" class="right-align-column"><span class="transaction-bold">${{ $credits ? $credits : 0 }}</span></td>
+                                   <td style="width:25%;" class="right-align-column"><span class="transaction-bold">${{ number_format((float)($credits ? $credits : 0), 2, '.', '') }}</span></td>
                                </tr>
                            </table>
                           <table style="width:100%;" class="main-align-column">

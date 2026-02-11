@@ -10,7 +10,8 @@
     <title>Payment Portal</title>
 
     <link rel="canonical" href="https://getbootstrap.com/docs/5.0/examples/sign-in/"> 
-    <link rel="icon" type="image/png" href="https://myoffice.mybackpocket.co/images/fav-main.png" />
+    <!-- <link rel="icon" type="image/png" href="https://myoffice.mybackpocket.co/images/fav-main.png" /> -->
+     <link rel="icon" type="image/png" href="{{ asset('merchant_logos/fav-main.png') }}">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.1/jquery.validate.min.js"></script>
 
